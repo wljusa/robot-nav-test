@@ -1,0 +1,19 @@
+sync_max_start_skew_ms: 50
+topics:
+  /odom:
+    hz: 20
+    hz_tolerance: 0.25
+    max_gap_ms: 100
+  /imu:
+    hz: 20
+    hz_tolerance: 0.25
+    max_gap_ms: 100
+  /cmd_vel:
+    hz: 20
+    hz_tolerance: 0.25
+    max_gap_ms: 100
+  /scan:
+    hz: 10
+    hz_tolerance: 0.25
+    max_gap_ms: 250
+    beams: 16

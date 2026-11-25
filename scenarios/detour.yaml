@@ -1,0 +1,19 @@
+name: 绕行障碍
+timeout_sec: 50
+robot_radius_m: 0.2
+goal_tolerance_m: 0.4
+bounds: {width: 8.0, height: 8.0}
+start: {x: 1.0, y: 1.0, yaw: 0.0}
+goal: {x: 6.5, y: 6.5}
+obstacles:
+  - {x: 3.0, y: 3.0, w: 2.0, h: 2.0}
+expect:
+  result: success
+  collided: false
+  min_clearance_m: 0.0
+  max_path_length_m: 20
+  max_linear: 0.8
+  max_abs_angular: 1.3
+  scan_beams: 16
+  imu_hz_min: 15
+  health: true

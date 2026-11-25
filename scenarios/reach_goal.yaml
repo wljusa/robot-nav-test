@@ -11,3 +11,9 @@ expect:
   collided: false
   odom_hz_min: 15
   scan_hz_min: 8
+  imu_hz_min: 15
+  min_clearance_m: 0.0
+  max_path_length_m: 16
+  max_linear: 0.8
+  scan_beams: 16
+  health: true

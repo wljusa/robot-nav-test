@@ -9,6 +9,7 @@ def plan(
     start: tuple[float, float],
     goal: tuple[float, float],
     resolution: float = 0.25,
+    t: float = 0.0,
 ) -> list[tuple[float, float]] | None:
     nx = int(world.width / resolution)
     ny = int(world.height / resolution)
@@ -25,7 +26,7 @@ def plan(
 
     def blocked(ix: int, iy: int) -> bool:
         x, y = center(ix, iy)
-        return world.body_collides(x, y)
+        return world.body_collides(x, y, t)
 
     start_cell = to_cell(*start)
     goal_cell = to_cell(*goal)
@@ -80,6 +81,6 @@ def plan(
         cells.append(came[cells[-1]])
     cells.reverse()
     path = [center(ix, iy) for ix, iy in cells]
-    if path[-1] != goal and not world.body_collides(*goal):
+    if path[-1] != goal and not world.body_collides(*goal, t):
         path.append(goal)
     return path

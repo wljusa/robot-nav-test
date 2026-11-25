@@ -1,0 +1,14 @@
+name: 动态障碍阻断
+timeout_sec: 20
+robot_radius_m: 0.2
+goal_tolerance_m: 0.4
+bounds: {width: 8.0, height: 8.0}
+start: {x: 1.0, y: 4.0, yaw: 0.0}
+goal: {x: 6.5, y: 4.0}
+obstacles: []
+motions:
+  - {x: 8.5, y: -1.0, w: 0.8, h: 10.0, vx: -1.5, vy: 0.0}
+expect:
+  result: blocked
+  collided: false
+  min_clearance_m: 0.0

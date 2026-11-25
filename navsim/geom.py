@@ -15,3 +15,16 @@ class Rect:
         nx = min(max(px, self.x), self.x + self.w)
         ny = min(max(py, self.y), self.y + self.h)
         return ((px - nx) ** 2 + (py - ny) ** 2) ** 0.5
+
+
+@dataclass(frozen=True)
+class MovingRect:
+    x: float
+    y: float
+    w: float
+    h: float
+    vx: float = 0.0
+    vy: float = 0.0
+
+    def at(self, t: float) -> Rect:
+        return Rect(self.x + self.vx * t, self.y + self.vy * t, self.w, self.h)

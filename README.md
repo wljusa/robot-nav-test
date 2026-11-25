@@ -1,25 +1,29 @@
 # nav-test
 
-用 YAML 描述导航场景，用 pytest 检查差速机器人有没有到达、有没有撞上、有没有超时。仿真不依赖 ROS，话题日志按 `/odom`、`/cmd_vel`、`/scan` 记录时间戳和频率，克隆后可以直接回归。
+移动机器人导航测试台。用 YAML 写场景，在二维差速仿真里跑导航，再用 pytest 做三层检查：场景结果、传感器话题健康、日志回放。不安装 ROS 也能在本机回归。
 
-YAML navigation scenarios on a 2D differential-drive simulator. pytest checks arrival, collision, timeout, and the rate of odom/scan logs.
+A navigation test bench for a differential-drive robot. Scenarios live in YAML. pytest checks the run result, sensor-topic health, and log replay.
 
-## 能做什么
+## 测什么
 
-- 三个基础场景：空旷到达、整面障碍阻断、时间预算内到不了
-- 栅格 A* 规划，按机器人半径膨胀障碍；无路则判为阻断，并且不让机器人穿过障碍
-- 每个周期记录 `/odom`、`/cmd_vel`，隔拍记录前方 `/scan` 距离
-- 断言场景状态、是否碰撞、里程计频率、时间戳是否单调
+- 导航场景：空旷到达、绕行障碍、静态阻断、动态障碍阻断、超时
+- 话题：`/odom`、`/imu`、`/scan`、`/cmd_vel` 的频率、帧间隔、时间戳是否回退、激光束数、多话题首帧是否对齐
+- 安全边界：不穿过障碍、最小间隙、线速度和角速度上限
+- 故障注入：激光丢帧、IMU 时间戳回退、激光束数不对，检查器必须失败
+- 日志回放：场景日志写成 JSONL，再按同一套话题规则复检
+
+`/scan` 是正前方 180°、16 束的测距。`/imu` 的角速度来自当前转向指令，用来练话题门禁。
 
 ## 架构
 
 ```mermaid
 flowchart LR
-  yamlCase[YAML场景] --> runner[runner]
-  runner --> planner[A星]
-  planner --> sim[差速仿真]
-  sim --> topics[话题日志]
-  topics --> pytest[断言]
+  yamlCase[YAML场景] --> sim[差速仿真]
+  sim --> topics[odom imu scan cmd_vel]
+  topics --> health[话题门禁]
+  topics --> log[JSONL日志]
+  log --> health
+  sim --> expect[到达 绕障 阻断 超时]
 ```
 
 ## 5 分钟跑通
@@ -29,41 +33,52 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pytest
-python -m navsim scenarios/reach_goal.yaml
+python -m navsim.suite
+```
+
+看单条场景：
+
+```bash
+python -m navsim scenarios/detour.yaml
+python -m navsim scenarios/dynamic_block.yaml
 ```
 
 ## 场景格式
 
 ```yaml
-name: 空旷到达
-timeout_sec: 40
+name: 绕行障碍
+timeout_sec: 50
 robot_radius_m: 0.2
 goal_tolerance_m: 0.4
 bounds: {width: 8.0, height: 8.0}
 start: {x: 1.0, y: 1.0, yaw: 0.0}
-goal: {x: 6.0, y: 6.0}
-obstacles: []
+goal: {x: 6.5, y: 6.5}
+obstacles:
+  - {x: 3.0, y: 3.0, w: 2.0, h: 2.0}
+motions: []          # 可选，vx/vy 为米每秒
 expect:
-  result: success        # success / blocked / timeout / collision
+  result: success    # success / blocked / timeout / collision
   collided: false
-  odom_hz_min: 15
-  scan_hz_min: 8
+  min_clearance_m: 0.0
+  health: true       # 按 expectations/topics.yaml 检查四个话题
 ```
 
-障碍写成轴对齐矩形。`blocked.yaml` 在地图中部放了一整面墙，起点和终点被隔开，期望是 `blocked` 且 `collided: false`。
+`dynamic_block.yaml` 里障碍从侧面移入通道，规划在相撞前失败，结果是 `blocked` 且 `collided: false`。
 
 ## 和机器人系统的对应关系
 
 | 本仓库 | 上机器之后 |
 | --- | --- |
-| `/odom` 的 x、y、yaw | 里程计话题 |
-| `/scan` 的前方距离 | 机器人正前方的测距 |
+| YAML 场景 | 导航场景库 |
+| `/odom` | 里程计 |
+| `/scan` 的 16 束距离 | 激光雷达在前方扇区的量程 |
+| `/imu` | 陀螺仪角速度 |
 | `/cmd_vel` | 底盘速度指令 |
-| YAML `expect` | 场景通过条件 |
-| pytest | 版本回归 |
+| JSONL 回放 | 录包后的回归 |
+| `expectations/topics.yaml` | 话题健康门禁 |
 
-本仓库解决的是「场景怎么写、失败怎么判」。接到 ROS2 之后，同一套断言改为订阅机器人上的真实话题，场景描述可以继续留在 YAML 里。
+仿真负责把场景跑起来。测试断言与仿真解耦：换到 ROS 2 之后，同一份期望改为读真实话题或录包。
 
 ## 面试时怎么讲
 
-场景表和测试代码分开，新增场景只加 YAML。到达看终点误差，阻断看规划失败且机器人没有穿过障碍，超时看预算用完仍在容差外。频率和时间戳是这条回归里的稳定性检查：采样断了，场景结果即使碰巧到达也不算通过。
+先讲测试分层，再讲场景。场景层看到达、绕障、阻断、动态障碍和超时。话题层看频率、丢帧、时间戳和激光束数，正常数据必须通过，注入的坏数据必须失败。回放层把同一次运行存成日志再查一遍，避免只在仿真当时看结果。这个仓库练的是导航测试怎么组织，不是 SLAM 或真机标定。

@@ -1,0 +1,12 @@
+name: 障碍阻断
+timeout_sec: 20
+robot_radius_m: 0.2
+goal_tolerance_m: 0.4
+bounds: {width: 8.0, height: 8.0}
+start: {x: 1.0, y: 1.0, yaw: 0.0}
+goal: {x: 6.0, y: 6.0}
+obstacles:
+  - {x: 0.0, y: 3.6, w: 8.0, h: 0.8}
+expect:
+  result: blocked
+  collided: false

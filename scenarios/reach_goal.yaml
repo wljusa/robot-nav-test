@@ -1,0 +1,13 @@
+name: 空旷到达
+timeout_sec: 40
+robot_radius_m: 0.2
+goal_tolerance_m: 0.4
+bounds: {width: 8.0, height: 8.0}
+start: {x: 1.0, y: 1.0, yaw: 0.0}
+goal: {x: 6.0, y: 6.0}
+obstacles: []
+expect:
+  result: success
+  collided: false
+  odom_hz_min: 15
+  scan_hz_min: 8
